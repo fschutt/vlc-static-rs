@@ -7,7 +7,7 @@ use std::borrow::Cow;
 use std::marker::PhantomData;
 use std::ffi::CString;
 use std::i32;
-use libc::{c_void, c_char, c_int};
+use libc::{c_void, c_char};
 use crate::sys;
 use crate::tools::{to_cstr, from_cstr, from_cstr_ref};
 use crate::enums::*;
@@ -128,15 +128,6 @@ impl Instance {
         }
     }
 
-    /// Set logging callback
-    pub fn set_log<F: Fn(LogLevel, Log, Cow<str>) + Send + 'static>(&self, f: F) {
-        let cb: Box<Box<dyn Fn(LogLevel, Log, Cow<str>) + Send + 'static>> = Box::new(Box::new(f));
-
-        unsafe{
-            (sys::get_vlc_dll().libvlc_log_set)(self.ptr, logging_cb, Box::into_raw(cb) as *mut _);
-        }
-    }
-
     /// Returns raw pointer
     pub fn raw(&self) -> *mut sys::libvlc_instance_t {
         self.ptr
@@ -149,21 +140,6 @@ impl Drop for Instance {
             (sys::get_vlc_dll().libvlc_release)(self.ptr);
         }
     }
-}
-
-extern "C" {
-    fn vsnprintf(s: *mut c_char, n: usize, fmt: *const c_char, arg: sys::va_list);
-}
-const BUF_SIZE: usize = 1024; // Write log message to the buffer by vsnprintf.
-unsafe extern "C" fn logging_cb(
-    data: *mut c_void, level: c_int, ctx: *const sys::libvlc_log_t, fmt: *const c_char, args: sys::va_list) {
-
-    let f: &Box<dyn Fn(LogLevel, Log, Cow<str>) + Send + 'static> = ::std::mem::transmute(data);
-    let mut buf: [c_char; BUF_SIZE] = [0; BUF_SIZE];
-
-    vsnprintf(buf.as_mut_ptr(), BUF_SIZE, fmt, args);
-
-    f(::std::mem::transmute(level), Log{ptr: ctx}, from_cstr_ref(buf.as_ptr()).unwrap());
 }
 
 /// List of module description.
