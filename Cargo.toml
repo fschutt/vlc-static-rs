@@ -1,0 +1,9 @@
+[package]
+name = "vlc-static"
+version = "0.1.0"
+authors = ["fschutt <felix.schuett@maps4print.com>"]
+edition = "2018"
+
+[dependencies]
+libc = "0.2.74"
+libloading-mini = "0.1.1"
